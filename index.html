@@ -65,18 +65,57 @@ data.forEach(r=>{
 let tr=document.createElement("tr");
 tr.innerHTML=`<td>${r.musteri_tel||""}</td><td>${r.ad_soyad||""}</td><td>${r.sehir||""}</td><td>${r.ilce||""}</td><td>${r.firma||""}</td>`;
 tr.onclick=()=>{
-detay.innerHTML=`
-<b>Ad Soyad:</b> ${r.ad_soyad||""}<br>
-<b>Telefon:</b> ${r.musteri_tel||""}<br>
-<b>Adres:</b> ${r.adres||""}<br>
-<b>İl:</b> ${r.sehir||""}<br>
-<b>İlçe:</b> ${r.ilce||""}<br>
-<b>Not:</b> ${r.not||r["not"]||""}<br>
-<b>Satan:</b> ${r.satan||""}<br>`;
+detay.innerHTML = `
+<b>Ad Soyad:</b> ${r.ad_soyad || ""}<br><br>
+
+<b>Telefon:</b> ${r.musteri_tel || ""}
+<button onclick="kopyala('${r.musteri_tel || ""}')">📋 Kopyala</button>
+<button onclick="araTel('${r.musteri_tel || ""}')">📞 Ara</button>
+<button onclick="whatsapp('${r.musteri_tel || ""}')">💬 WhatsApp</button>
+<br><br>
+
+<b>İl:</b> ${r.sehir || ""}<br>
+<b>İlçe:</b> ${r.ilce || ""}<br><br>
+
+<b>Adres:</b><br>
+${r.adres || ""}<br>
+
+<button onclick="kopyala(\`${(r.adres || "").replace(/`/g,"")}\`)">
+📋 Adresi Kopyala
+</button>
+
+<br><br>
+
+<b>Not:</b><br>
+${r["not"] || ""}<br><br>
+
+<b>Satan:</b> ${r.satan || ""}
+`;
 modal.style.display="flex";
 };
 tb.appendChild(tr);
 });
+}
+    function kopyala(text){
+    navigator.clipboard.writeText(text);
+    alert("Kopyalandı.");
+}
+
+function araTel(tel){
+    location.href="tel:"+tel;
+}
+
+function whatsapp(tel){
+
+    let no = tel.replace(/\D/g,'');
+
+    if(no.startsWith("0"))
+        no = "90"+no.substring(1);
+
+    if(!no.startsWith("90"))
+        no = "90"+no;
+
+    window.open("https://wa.me/"+no,"_blank");
 }
 </script>
 </body></html>
