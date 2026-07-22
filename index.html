@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Müşteri Arama Sistemi</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    font-family:Arial,Helvetica,sans-serif;
+    background:#111827;
+    color:#fff;
+}
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
+.filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
+    margin-bottom:15px;
+}
+input,button{
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #374151;
+    font-size:15px;
+}
+input{
+    background:#1f2937;
+    color:#fff;
+}
+button{
+    background:#2563eb;
+    color:#fff;
+    cursor:pointer;
+    border:none;
+    font-weight:bold;
+}
+button:hover{
+    opacity:0.9;
+}
+#resultCount{
+    margin:10px 0;
+    color:#d1d5db;
+}
+.table-wrap{
+    overflow-x:auto;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:800px;
+}
+th,td{
+    padding:12px;
+    border-bottom:1px solid #374151;
+    text-align:left;
+}
+th{
+    background:#1f2937;
+    position:sticky;
+    top:0;
+}
+tr:hover{
+    background:#1f2937;
+    cursor:pointer;
+}
+td.address{
+    max-width:260px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:15px;
+}
+.modal-content{
+    background:#1f2937;
+    width:100%;
+    max-width:520px;
+    border-radius:15px;
+    padding:20px;
+    max-height:90vh;
+    overflow:auto;
+}
+.modal h2{
+    margin-top:0;
+}
+.detail{
+    margin-bottom:12px;
+    line-height:1.5;
+}
+.detail b{
+    display:block;
+    margin-bottom:3px;
+    color:#93c5fd;
+}
+.actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+.actions button{
+    flex:1;
+    min-width:140px;
+}
+.close-btn{
+    background:#374151;
+}
+@media(max-width:768px){
+    table{
+        min-width:700px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📋 Müşteri Arama Sistemi</h1>
+
+    <div class="filters">
+        <input type="text" id="tel" placeholder="Telefon">
+        <input type="text" id="ad" placeholder="Ad Soyad">
+        <input type="text" id="sehir" placeholder="İl">
+        <input type="text" id="ilce" placeholder="İlçe">
+        <button onclick="ara()">🔍 Ara</button>
+    </div>
+
+    <div id="resultCount"></div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Telefon</th>
+                    <th>Ad Soyad</th>
+                    <th>İl</th>
+                    <th>İlçe</th>
+                    <th>Adres</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <h2>👤 Müşteri Detayı</h2>
+
+        <div id="detailContent"></div>
+
+        <div class="actions">
+            <button id="copyBtn">📋 Bilgileri Kopyala</button>
+            <button id="waBtn">💬 WhatsApp</button>
+            <button class="close-btn" onclick="closeModal()">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const db = supabase.createClient(
+  "https://jarsxtpqzqzhlshpmgot.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphcnN4dHBxenF6aGxzaHBtZ290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyODExMTcsImV4cCI6MjA3Nzg1NzExN30.98oYONSkb8XSDrfGW2FxhFmt2BLB5ZRo3Ho50GhZYgE"
+);
+
+const tableBody = document.getElementById("tableBody");
+const resultCount = document.getElementById("resultCount");
+const modal = document.getElementById("modal");
+const detailContent = document.getElementById("detailContent");
+
+let currentCopyText = "";
+let currentWhatsappText = "";
+let currentWhatsappNo = "";
+
+async function ara() {
+    tableBody.innerHTML = "";
+    resultCount.textContent = "Yükleniyor...";
+
+    let q = db
+        .from("musteriler")
+        .select("*")
+        .order("tarih", { ascending: false })
+        .limit(100);
+
+    const tel = document.getElementById("tel").value.trim();
+    const ad = document.getElementById("ad").value.trim();
+    const sehir = document.getElementById("sehir").value.trim();
+    const ilce = document.getElementById("ilce").value.trim();
+
+    // Telefon başındaki 0'ı kaldırarak arama
+    if (tel) {
+        let temizTel = tel.replace(/\D/g, '').replace(/^0+/, '');
+        q = q.or(
+            `musteri_tel.ilike.%${temizTel}%,musteri_tel.ilike.%0${temizTel}%`
+        );
+    }
+
+    if (ad) {
+        q = q.ilike("ad_soyad", `%${ad}%`);
+    }
+
+    if (sehir) {
+        q = q.ilike("sehir", `%${sehir}%`);
+    }
+
+    if (ilce) {
+        q = q.ilike("ilce", `%${ilce}%`);
+    }
+
+    const { data, error } = await q;
+
+    if (error) {
+        resultCount.textContent = "Hata: " + error.message;
+        return;
+    }
+
+    resultCount.textContent = `Toplam ${data.length} kayıt bulundu`;
+
+    data.forEach(r => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${r.musteri_tel || ''}</td>
+            <td>${r.ad_soyad || ''}</td>
+            <td>${r.sehir || ''}</td>
+            <td>${r.ilce || ''}</td>
+            <td class="address">${r.adres || ''}</td>
+        `;
+
+        tr.onclick = () => openDetail(r);
+
+        tableBody.appendChild(tr);
+    });
+}
+
+function openDetail(r) {
+    const acikAdres = `${r.adres || ''}
+${r.ilce || ''} / ${r.sehir || ''}`.trim();
+
+    currentCopyText =
+`${r.ad_soyad || ''}
+
+${r.musteri_tel || ''}
+
+${acikAdres}`;
+
+    currentWhatsappText = currentCopyText;
+    currentWhatsappNo = r.musteri_tel || '';
+
+    detailContent.innerHTML = `
+        <div class="detail">
+            <b>Ad Soyad</b>
+            ${r.ad_soyad || ''}
+        </div>
+
+        <div class="detail">
+            <b>Telefon</b>
+            ${r.musteri_tel || ''}
+        </div>
+
+        <div class="detail">
+            <b>İl</b>
+            ${r.sehir || ''}
+        </div>
+
+        <div class="detail">
+            <b>İlçe</b>
+            ${r.ilce || ''}
+        </div>
+
+        <div class="detail">
+            <b>Açık Adres</b>
+            ${r.adres || ''} <br>
+            ${r.ilce || ''} / ${r.sehir || ''}
+        </div>
+
+        <div class="detail">
+            <b>Not</b>
+            ${r['not'] || ''}
+        </div>
+
+        <div class="detail">
+            <b>Satan</b>
+            ${r.satan || ''}
+        </div>
+    `;
+
+    modal.style.display = "flex";
+}
+
+function closeModal() {
+    modal.style.display = "none";
+}
+
+document.getElementById("copyBtn").onclick = async () => {
+    try {
+        await navigator.clipboard.writeText(currentCopyText);
+        alert("Bilgiler kopyalandı");
+    } catch (e) {
+        alert("Kopyalama başarısız");
+    }
+};
+
+document.getElementById("waBtn").onclick = () => {
+    let no = currentWhatsappNo.replace(/\D/g, '');
+
+    if (no.startsWith('0')) {
+        no = '90' + no.substring(1);
+    } else if (!no.startsWith('90')) {
+        no = '90' + no;
+    }
+
+    const url =
+        'https://wa.me/' + no +
+        '?text=' + encodeURIComponent(currentWhatsappText);
+
+    window.open(url, '_blank');
+};
+
+modal.addEventListener('click', e => {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+</script>
+
+</body>
+</html>
