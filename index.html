@@ -48,7 +48,12 @@ const db=supabase.createClient(
 const tb=document.getElementById("tb"),say=document.getElementById("say"),modal=document.getElementById("modal");
 async function ara(){
 let q=db.from("musteriler").select("*").limit(100).order("tarih",{ascending:false});
-if(tel.value.trim()) q=q.ilike("musteri_tel","%"+tel.value.trim()+"%");
+if (tel.value.trim()) {
+    let telefon = tel.value.trim().replace(/^0+/, "");
+    q = q.or(
+        `musteri_tel.ilike.%${telefon}%,musteri_tel.ilike.%0${telefon}%`
+    );
+}
 if(ad.value.trim()) q=q.ilike("ad_soyad","%"+ad.value.trim()+"%");
 if(sehir.value.trim()) q=q.ilike("sehir","%"+sehir.value.trim()+"%");
 if(ilce.value.trim()) q=q.ilike("ilce","%"+ilce.value.trim()+"%");
