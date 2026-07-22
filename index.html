@@ -2,16 +2,13 @@
 <html lang="tr">
 <head>
     <link rel="manifest" href="manifest.json">
-
 <meta name="theme-color" content="#2563eb">
-
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <meta name="apple-mobile-web-app-title" content="Müşteriler">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Müşteri Arama Sistemi</title>
@@ -353,8 +350,16 @@ modal.addEventListener('click', e => {
         closeModal();
     }
 });
-    if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
+    // Service Worker
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", async () => {
+        try {
+            await navigator.serviceWorker.register("./service-worker.js");
+            console.log("Service Worker kayıt edildi.");
+        } catch (err) {
+            console.error("Service Worker hatası:", err);
+        }
+    });
 }
 </script>
 
