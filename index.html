@@ -1,93 +1,78 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Köydensana.com | Yapım Aşamasında</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1b5e20, #66bb6a);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 600px;
-      padding: 20px;
-    }
-
-    h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
-    }
-
-    p {
-      font-size: 18px;
-      line-height: 1.6;
-      opacity: 0.95;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 8px 14px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 20px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-
-    .contact {
-      margin-top: 25px;
-      padding: 12px 18px;
-      background: #ffffff;
-      color: #1b5e20;
-      display: inline-block;
-      border-radius: 8px;
-      font-weight: bold;
-      text-decoration: none;
-    }
-
-    .contact:hover {
-      background: #f1f1f1;
-    }
-
-    footer {
-      margin-top: 30px;
-      font-size: 13px;
-      opacity: 0.8;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Müşteri Arama</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#111827;color:#fff;margin:0}
+.wrap{max-width:1100px;margin:auto;padding:20px}
+h2{text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+input,button{padding:12px;border-radius:8px;border:1px solid #444}
+input{background:#1f2937;color:#fff}
+button{background:#2563eb;color:#fff;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{padding:10px;border-bottom:1px solid #333}
+tr:hover{background:#1f2937;cursor:pointer}
+#modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center}
+.card{background:#1f2937;padding:20px;border-radius:10px;max-width:500px;width:90%}
+</style>
 </head>
-
 <body>
-  <div class="container">
-    <div class="badge">🚧 Yapım Aşamasında</div>
-
-    <h1>Köydensana.com</h1>
-
-    <p>
-      Doğal köy ürünleri çok yakında sizlerle!<br>
-      En taze zeytin, zeytinyağı, salça ve daha fazlası için hazırlıklarımız devam ediyor.
-    </p>
-
-    <p>
-      🏡 Köyden sofranıza gelen doğal lezzetler yakında burada olacak.
-    </p>
-
-    <a class="contact" href="mailto:info@koydensana.com">
-      Bize Ulaş
-    </a>
-
-    <footer>
-      © 2026 Köydensana.com - Tüm hakları saklıdır.
-    </footer>
-  </div>
-</body>
-</html>
+<div class="wrap">
+<h2>Müşteri Arama</h2>
+<div class="grid">
+<input id="tel" placeholder="Telefon">
+<input id="ad" placeholder="Ad Soyad">
+<input id="sehir" placeholder="İl">
+<input id="ilce" placeholder="İlçe">
+<button onclick="ara()">Ara</button>
+</div>
+<div id="say"></div>
+<table>
+<thead><tr><th>Telefon</th><th>Ad Soyad</th><th>İl</th><th>İlçe</th><th>Firma</th></tr></thead>
+<tbody id="tb"></tbody>
+</table>
+</div>
+<div id="modal"><div class="card">
+<h3>Detay</h3><div id="detay"></div><br>
+<button onclick="modal.style.display='none'">Kapat</button>
+</div></div>
+<script>
+const db=supabase.createClient(
+"https://jarsxtpqzqzhlshpmgot.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphcnN4dHBxenF6aGxzaHBtZ290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyODExMTcsImV4cCI6MjA3Nzg1NzExN30.98oYONSkb8XSDrfGW2FxhFmt2BLB5ZZRo3Ho50GhZYgE".replace("ZZ","Z")
+);
+const tb=document.getElementById("tb"),say=document.getElementById("say"),modal=document.getElementById("modal");
+async function ara(){
+let q=db.from("musteriler").select("*").limit(100).order("tarih",{ascending:false});
+if(tel.value.trim()) q=q.ilike("musteri_tel","%"+tel.value.trim()+"%");
+if(ad.value.trim()) q=q.ilike("ad_soyad","%"+ad.value.trim()+"%");
+if(sehir.value.trim()) q=q.ilike("sehir","%"+sehir.value.trim()+"%");
+if(ilce.value.trim()) q=q.ilike("ilce","%"+ilce.value.trim()+"%");
+const {data,error}=await q;
+if(error){alert(error.message);return;}
+tb.innerHTML="";
+say.textContent="Toplam: "+data.length;
+data.forEach(r=>{
+let tr=document.createElement("tr");
+tr.innerHTML=`<td>${r.musteri_tel||""}</td><td>${r.ad_soyad||""}</td><td>${r.sehir||""}</td><td>${r.ilce||""}</td><td>${r.firma||""}</td>`;
+tr.onclick=()=>{
+detay.innerHTML=`
+<b>Ad Soyad:</b> ${r.ad_soyad||""}<br>
+<b>Telefon:</b> ${r.musteri_tel||""}<br>
+<b>İl:</b> ${r.sehir||""}<br>
+<b>İlçe:</b> ${r.ilce||""}<br>
+<b>Adres:</b> ${r.adres||""}<br>
+<b>Firma:</b> ${r.firma||""}<br>
+<b>Not:</b> ${r.not||r["not"]||""}<br>
+<b>Satan:</b> ${r.satan||""}<br>`;
+modal.style.display="flex";
+};
+tb.appendChild(tr);
+});
+}
+</script>
+</body></html>
